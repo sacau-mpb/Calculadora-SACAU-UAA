@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Calculadora de créditos SACAU a partir de un plan de estudios en Excel.">
+  <title>Calculadora de créditos SACAU</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
+  <script defer src="app-sacau-v8.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header class="masthead">
+      <div class="brand"><img src="UA_logo_sinfondo.png" alt="Universidad Atlántida" class="university-logo"><span class="brand-rule"></span><span class="unit-name">Unidad de Transformación Curricular</span></div>
+      <h1>Calculadora de créditos</h1>
+      <p>Convertí las horas de tu plan de estudios en créditos y obtené una tabla lista para revisar o compartir.</p>
+    </header>
+
+    <section class="panel" aria-labelledby="career-heading">
+      <div class="section-heading"><span class="step">01</span><div><h2 id="career-heading">Datos de la carrera</h2><p>Seleccioná una facultad y una carrera del catálogo institucional.</p></div></div>
+      <p id="catalog-status" class="field-message" role="status" aria-live="polite"></p>
+      <div class="career-fields">
+        <div class="field career-field"><label for="faculty-select">Facultad</label><select id="faculty-select" required><option value="">Seleccioná una facultad</option></select></div>
+        <div class="field career-field"><label for="career-select">Carrera</label><select id="career-select" required><option value="">Seleccioná una carrera</option></select></div>
+        <div class="field"><label for="modality-select">Modalidad</label><select id="modality-select" required><option value="">Seleccioná una modalidad</option><option>Presencial</option><option>A Distancia</option></select></div>
+        <div class="field"><label for="regime-select">Artículo de la Ley de Educación Superior</label><select id="regime-select" required><option value="">Seleccioná un artículo</option><option value="42">Artículo 42</option><option value="43">Artículo 43</option></select></div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="upload-heading">
+      <div class="section-heading"><span class="step">02</span><div><h2 id="upload-heading">Cargar plan de estudios</h2><p>Elegí un archivo .xls o .xlsx y luego presioná «Procesar». Se utilizará la primera hoja.</p></div></div>
+      <div class="upload-grid">
+        <div class="dropzone" id="dropzone">
+          <div class="sheet-icon" aria-hidden="true">XLS</div>
+          <strong id="file-label">Arrastrá tu archivo acá</strong>
+          <span>o seleccioná un archivo desde tu dispositivo</span>
+          <label class="button secondary" for="file-input">Elegir archivo</label>
+          <input id="file-input" type="file" accept=".xls,.xlsx" aria-label="Archivo Excel con el plan de estudios">
+        </div>
+        <div class="requirements">
+          <h3>Formato esperado</h3>
+          <p>La primera hoja debe contener:</p>
+          <div class="chips"><span>Asignatura</span><span>Tipo</span><span>Nivel</span><span>HIP</span></div>
+          <p><b>Tipo y Nivel:</b> 1 = Introductoria; 2 = Trayectoria; 3 = Integración/Finalización.</p>
+          <p><b>HIP:</b> horas presenciales, con valor igual o mayor a cero. Facultad y Carrera se eligen arriba, a partir del catálogo separado.</p>
+          <button class="text-button" id="template-button" type="button">Descargar plantilla de Excel ↗</button>
+        </div>
+      </div>
+      <div class="upload-actions"><button id="process-button" class="button primary" type="button" disabled>Procesar archivo</button></div>
+      <div class="notice" id="status" role="status" aria-live="polite">Seleccioná un archivo para comenzar.</div>
+    </section>
+
+    <section class="panel" aria-labelledby="results-heading">
+      <div class="section-heading"><span class="step">03</span><div><h2 id="results-heading">Revisar resultados</h2><p>La tabla y el resumen aparecen después de procesar el archivo.</p></div></div>
+      <div id="empty-results" class="empty">Los resultados de las asignaturas aparecerán acá.</div>
+      <div id="results" hidden>
+        <p id="career-summary" class="career-summary"></p>
+        <div class="summary"><div><span>Asignaturas</span><strong id="count">0</strong></div><div><span>Horas totales</span><strong id="hours">0</strong></div><div><span>Créditos totales</span><strong id="credits">0</strong></div></div>
+        <p class="rounding-note">Los créditos se redondean por asignatura, por nivel y sobre el total general. Por eso, la suma de los valores visibles puede diferir del total general.</p>
+        <div class="table-scroll"><table><thead><tr><th>Asignatura</th><th>Tipo</th><th>Nivel</th><th class="numeric">HIP</th><th class="numeric">HTA</th><th class="numeric">Total</th><th class="numeric">CRE</th></tr></thead><tbody id="results-body"></tbody><tfoot id="results-total"></tfoot></table></div>
+        <h3>Resumen por nivel</h3><div class="table-scroll"><table><thead><tr><th>Nivel</th><th class="numeric">HIP</th><th class="numeric">HTA</th><th class="numeric">Total</th><th class="numeric">CRE</th></tr></thead><tbody id="level-summary"></tbody><tfoot id="level-total"></tfoot></table></div>
+      </div>
+    </section>
+
+    <section class="panel downloads" aria-labelledby="downloads-heading">
+      <div class="section-heading"><span class="step">04</span><div><h2 id="downloads-heading">Descargar archivos</h2><p>Guardá la tabla completa en Excel o el informe con resumen en PDF.</p></div></div>
+      <div class="actions"><button id="excel-button" class="button primary" disabled>Descargar Excel</button><button id="pdf-button" class="button secondary" disabled>Descargar PDF</button></div>
+    </section>
+
+    <details class="formula"><summary>Ver índices y fórmulas utilizados</summary><div class="formula-content"><p>Los índices de ponderación son los valores de ejemplo incluidos en el script original. Verificalos con el criterio aplicable antes de usar los resultados.</p><table><thead><tr><th>Régimen</th><th>Tipo 1</th><th>Tipo 2</th><th>Tipo 3</th></tr></thead><tbody><tr><th>Art. 42</th><td>1,0</td><td>1,8</td><td>2,5</td></tr><tr><th>Art. 43</th><td>0,5</td><td>1,2</td><td>2,0</td></tr></tbody></table><p>HTA = HIP × índice · Total = HIP + HTA · CRE = redondeo al entero más cercano de (Total ÷ 25)</p></div></details>
+    <footer>El archivo se procesa en tu navegador; no se envía a un servidor.</footer>
+  </main>
+</body>
+</html>
